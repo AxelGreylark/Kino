@@ -1,5 +1,6 @@
 """Films vus : Trakt (fait foi) et Plex (complément)."""
 
+import re
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -19,9 +20,17 @@ def _entetes_trakt(config):
     return entetes
 
 
+def _profil(config):
+    """L'API attend l'identifiant du profil tel qu'il figure dans son adresse :
+    en minuscules, tout autre signe (« _ », « . ») remplacé par un tiret."""
+    if not config.trakt_utilisateur:
+        return "me"
+    return quote(re.sub(r"[^a-z0-9]+", "-", config.trakt_utilisateur.lower()).strip("-"))
+
+
 def trakt_visionnages(config, lire=lire_json):
     """Chaque lecture d'un film : {tmdb, imdb, titre, date}."""
-    utilisateur = quote(config.trakt_utilisateur or "me")
+    utilisateur = _profil(config)
     page = 1
     while True:
         lot = lire(
@@ -45,7 +54,7 @@ def trakt_visionnages(config, lire=lire_json):
 
 
 def trakt_notes(config, lire=lire_json):
-    utilisateur = quote(config.trakt_utilisateur or "me")
+    utilisateur = _profil(config)
     lot = lire(f"{TRAKT}/users/{utilisateur}/ratings/movies", _entetes_trakt(config)) or []
     for element in lot:
         ids = (element.get("movie") or {}).get("ids") or {}

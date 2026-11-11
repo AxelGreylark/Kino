@@ -17,9 +17,15 @@ def cmd_sync(con, config, args):
     plex = list(plex_films(config)) if config.plex_url and not args.sans_plex else []
     if plex:
         print(f"Plex : {len(plex)} films, dont {sum(p['vu'] for p in plex)} vus")
+    visionnages = list(trakt_visionnages(config))
+    if not visionnages and not any(p["vu"] for p in plex):
+        raise SystemExit(
+            f"Aucun film vu : l'historique Trakt de « {config.trakt_utilisateur} » est vide"
+            " et Plex n'en apporte pas. Le catalogue n'a pas été modifié."
+        )
     ignores = construire(
         con, config, tmdb,
-        visionnages=list(trakt_visionnages(config)),
+        visionnages=visionnages,
         notes=list(trakt_notes(config)),
         plex=plex, seuil=args.seuil,
     )

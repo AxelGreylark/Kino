@@ -191,6 +191,12 @@ class Trakt(unittest.TestCase):
         self.assertEqual(len(appels), 2)
         self.assertEqual(appels[0][1]["trakt-api-key"], "id")
 
+    def test_nom_de_profil(self):
+        appels = []
+        list(trakt_visionnages(Config(trakt_client_id="id", trakt_utilisateur="Jean_Dupont.42"),
+                               lambda url, entetes=None: appels.append(url) or []))
+        self.assertIn("/users/jean-dupont-42/history", appels[0])
+
 
 if __name__ == "__main__":
     unittest.main()
