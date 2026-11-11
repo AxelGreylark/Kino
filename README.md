@@ -22,7 +22,12 @@ Il faut :
 - **Trakt** : le « Client ID » d'une application créée sur
   `trakt.tv/oauth/applications`, et le nom du profil. Le profil doit être public,
   sinon ajouter un jeton d'accès (`TRAKT_JETON`).
-- **Plex** (facultatif) : l'adresse du serveur et son `X-Plex-Token`.
+- **Plex** : l'adresse du serveur (`http://adresse-du-NAS:32400`) et son
+  `X-Plex-Token`. Pour le trouver : dans Plex Web, ouvrir un film, « … » →
+  « Voir les infos » → « Voir le XML » ; le jeton est à la fin de l'adresse de
+  la page, après `X-Plex-Token=`.
+
+Trakt et Plex sont chacun facultatifs, mais il en faut au moins un.
 
 ## Les questions
 

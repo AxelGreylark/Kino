@@ -11,22 +11,24 @@ from .tmdb import TMDB
 
 
 def cmd_sync(con, config, args):
-    if not config.trakt_client_id:
-        raise SystemExit("Trakt : renseigner TRAKT_CLIENT_ID et TRAKT_UTILISATEUR dans .env")
+    avec_trakt = bool(config.trakt_client_id) and not args.sans_trakt
+    avec_plex = bool(config.plex_url) and not args.sans_plex
+    if not (avec_trakt or avec_plex):
+        raise SystemExit("Aucune source : renseigner Trakt (TRAKT_CLIENT_ID, TRAKT_UTILISATEUR)"
+                         " ou Plex (PLEX_URL, PLEX_JETON) dans .env")
     tmdb = TMDB(con, config, fraicheur_jours=args.fraicheur)
-    plex = list(plex_films(config)) if config.plex_url and not args.sans_plex else []
+    plex = list(plex_films(config)) if avec_plex else []
     if plex:
         print(f"Plex : {len(plex)} films, dont {sum(p['vu'] for p in plex)} vus")
-    visionnages = list(trakt_visionnages(config))
+    visionnages = list(trakt_visionnages(config)) if avec_trakt else []
+    if avec_trakt:
+        print(f"Trakt : {len(visionnages)} visionnages")
     if not visionnages and not any(p["vu"] for p in plex):
-        raise SystemExit(
-            f"Aucun film vu : l'historique Trakt de « {config.trakt_utilisateur} » est vide"
-            " et Plex n'en apporte pas. Le catalogue n'a pas été modifié."
-        )
+        raise SystemExit("Aucun film vu dans les sources lues. Le catalogue n'a pas été modifié.")
     ignores = construire(
         con, config, tmdb,
         visionnages=visionnages,
-        notes=list(trakt_notes(config)),
+        notes=list(trakt_notes(config)) if avec_trakt else [],
         plex=plex, seuil=args.seuil,
     )
     print(f"{tmdb.appels} appels à TMDB (le reste vient du cache)")
@@ -76,6 +78,7 @@ def main(argv=None):
                    help="charger la filmographie de qui revient dans au moins N films vus (2)")
     s.add_argument("--fraicheur", type=int, default=30, help="durée de vie du cache TMDB, en jours (30)")
     s.add_argument("--sans-plex", action="store_true")
+    s.add_argument("--sans-trakt", action="store_true")
     s.set_defaults(action=cmd_sync)
 
     sous.add_parser("stats", help="taille du catalogue").set_defaults(action=cmd_stats)
