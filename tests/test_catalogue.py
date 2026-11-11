@@ -110,6 +110,9 @@ class Catalogue(unittest.TestCase):
         paire = next(d for d in duos if {d["a"], d["b"]} == {"Roger Deakins", "Denis Villeneuve"})
         self.assertEqual((paire["vus"], paire["communs"]), (2, 3))   # Prisoners en commun, pas vu
 
+    def test_poste_principal(self):
+        self.assertEqual(requetes._principal("Editor,Director,Screenplay"), "Director")
+
     def test_a_voir(self):
         resultat = requetes.a_voir(self.con, aujourdhui="2026-01-01")
         # Ni le projet sans date, ni le film futur, ni le court à trois votes, ni la saga seule.

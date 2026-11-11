@@ -21,6 +21,12 @@ def poste_fr(poste):
     return POSTES_FR.get(poste, poste)
 
 
+def _principal(texte):
+    """Le poste le plus parlant quand une personne en cumule plusieurs sur un film."""
+    postes = texte.split(",")
+    return min(postes, key=lambda p: list(POSTES_FR).index(p) if p in POSTES_FR else len(POSTES_FR))
+
+
 def _postes(texte):
     vus = []
     for poste in (texte or "").split(","):
@@ -86,14 +92,14 @@ def duos(con, limite=30, minimum=2, avec_distribution=False):
         noms = dict(con.execute(
             "SELECT tmdb_id, nom FROM personne WHERE tmdb_id IN (?, ?)", (l["ida"], l["idb"])
         ).fetchall())
-        # Films en commun toutes filmographies confondues, si on les connaît toutes les deux.
+        # Films en commun (aux postes clés) sur toute leur carrière, si on connaît les deux filmographies.
         completes = con.execute(
             "SELECT COUNT(*) FROM personne WHERE filmographie = 1 AND tmdb_id IN (?, ?)",
             (l["ida"], l["idb"]),
         ).fetchone()[0] == 2
         communs = con.execute(
             """SELECT COUNT(DISTINCT a.film_id) FROM credit a JOIN credit b USING (film_id)
-               WHERE a.personne_id = ? AND b.personne_id = ?""",
+               WHERE a.personne_id = ? AND b.personne_id = ? AND a.cle = 1 AND b.cle = 1""",
             (l["ida"], l["idb"]),
         ).fetchone()[0] if completes else None
         resultat.append({
@@ -127,7 +133,7 @@ def a_voir(con, limite=30, votes_min=20, aujourdhui=None):
     resultat = []
     for l in lignes:
         raisons = con.execute(
-            """SELECT p.nom, MIN(c.poste) AS poste,
+            """SELECT p.nom, GROUP_CONCAT(DISTINCT c.poste) AS postes,
                       (SELECT COUNT(DISTINCT c2.film_id) FROM credit c2 JOIN vu USING (film_id)
                        WHERE c2.personne_id = p.tmdb_id AND c2.cle = 1) AS n
                FROM credit c JOIN personne p ON p.tmdb_id = c.personne_id
@@ -138,7 +144,7 @@ def a_voir(con, limite=30, votes_min=20, aujourdhui=None):
         resultat.append({
             "id": l["tmdb_id"], "titre": l["titre"], "annee": l["annee"],
             "dans_plex": bool(l["dans_plex"]), "score": l["score"],
-            "raisons": [f"{r['nom']} ({poste_fr(r['poste'])}, {r['n']} vus)" for r in raisons],
+            "raisons": [f"{r['nom']} ({poste_fr(_principal(r['postes']))}, {r['n']} vus)" for r in raisons],
         })
     return resultat
 
